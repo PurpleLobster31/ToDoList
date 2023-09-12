@@ -1,19 +1,26 @@
 import customtkinter as ctk
 
-class MyCheckboxFrame(ctk.CTkFrame):
-    def __init__(self, master, values, title):
-        super().__init__(master)
-        self.values = values
-        self.title=title
-        self.checkboxes = []
 
-        self.title = ctk.CTkLabel(self, text=self.title, fg_color="gray30", corner_radius=6)
-        self.title.grid(row=0, column=0, padx=10, pady=(10, 0), sticky="nsew")
+
+class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
+    def __init__(self, master, title, values):
+        super().__init__(master, label_text=title)
+        self.grid_columnconfigure(0, weight=1)
+        self.values = values
+        self.checkboxes = []
+        self.add_checkbox = ctk.CTkButton(master, text="Press to add new card.", command=create_card)
         
         for i, value in enumerate(self.values):
             checkbox = ctk.CTkCheckBox(self, text=value)
-            checkbox.grid(row=i+1, column=0, padx=10, pady=(10, 0), sticky="nsew")
+            checkbox.grid(row=i, column=0, padx=10, pady=(10, 0), sticky="w")
             self.checkboxes.append(checkbox)
+
+    def create_card(self):
+        dialog = ctk.CTkInputDialog(title="New Card", text="Type in the name of the card + final date:")
+        text = dialog.get_input()
+        if text:
+            pass
+            
 
     def get(self):
         checked_checkboxes = []
@@ -21,20 +28,6 @@ class MyCheckboxFrame(ctk.CTkFrame):
             if checkbox.get() == 1:
                 checked_checkboxes.append(checkbox.cget("text"))
         return checked_checkboxes
-
-class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
-    def __init__(self, master, title, tests, assignments):
-        super().__init__(master, label_text=title, orientation="horizontal")
-        self.grid_columnconfigure((0,1), weight = 1)
-        self.grid_rowconfigure(0, weight=1)
-        self.tests = tests
-        self.assignments = assignments
-        
-        self.assignments_frame = MyCheckboxFrame(self, self.assignments, "Assignments")
-        self.assignments_frame.grid(row=0, column=0, padx=10, pady=(10,0), sticky="nsew") 
-        
-        self.tests_frame = MyCheckboxFrame(self, self.tests, "Tests")
-        self.tests_frame.grid(row=0, column=1, padx=(0,10), pady=(10,0), sticky="nsew") 
         
         
         
@@ -53,11 +46,8 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
         
         #UI elements
-        tests = ["EDVT - 10/10", "BIOA - 11/10"]
-        assignments = ["Read book - 08/10", "Draw sketch of a house - 12/11"]
-        
-        self.scrollable_frame = MyScrollableCheckboxFrame(self, title = "UFABC", tests=tests, assignments=assignments)
-        self.scrollable_frame.grid(row=0, column=0, padx=10, pady=(10, 0), sticky="nsew")
+        frames = []
+       
         
 app = App()
 app.mainloop()
