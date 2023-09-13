@@ -1,16 +1,56 @@
 import customtkinter as ctk
+import pickle
+from CTkMessagebox import CTkMessagebox
 
+def save_object(obj, filename):
+    try:
+        with open(filename, "wb") as file:
+            pickle.dump(obj, file, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as ex:
+        print("Error during pickling object (Possibly unsupported):", ex)
+
+def load_object(filename):
+    try:
+        with open(filename, 'rb') as file:
+            obj = pickle.load(file)
+        return obj
+    except Exception as e:
+        print(f"Error while loading: {str(e)}")
+        return []
+    
 class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
-    def __init__(self, master, title):
+    def __init__(self, master, title, dump):
         super().__init__(master, label_text=title)
         self.grid_columnconfigure(0, weight=1)
+        self.dump=dump
         self.checkboxes = []
+        self.load_checkboxes()
         
-        # for i, value in enumerate(self.values):
-        #     checkbox = ctk.CTkCheckBox(self, text=value)
-        #     checkbox.grid(row=i, column=0, padx=10, pady=(10, 0), sticky="w")
-        #     self.checkboxes.append(checkbox)
-            
+
+    def save_checkboxes(self):
+        checkbox_texts = []
+        checkbox_states = []
+        
+        for checkbox in self.checkboxes:
+            c_text = checkbox.cget("text")
+            c_state = checkbox.get()
+            checkbox_texts.append(c_text)
+            checkbox_states.append(c_state)
+        
+        checkbox_dump = {checkbox_texts[i]: checkbox_states[i] for i in range(len(checkbox_texts))}
+        save_object(checkbox_dump, self.dump)
+        
+         
+    def load_checkboxes(self):
+        self.checkboxes_dict = load_object(self.dump)
+        for key in self.checkboxes_dict:
+            checkbox = ctk.CTkCheckBox(self, text=key)
+            if self.checkboxes_dict[key]==1:
+                checkbox.toggle()
+            checkbox.grid(row=len(self.checkboxes), column=0, padx = 10, pady=(10,0), sticky="w")
+            self.checkboxes.append(checkbox)
+            self.get()
+    
     def add_checkbox(self):
         dialog = ctk.CTkInputDialog(title="New Checkbox", text="Type in the name and due date:\nFormat (Name - Date) or (Name)")
         
@@ -36,7 +76,6 @@ class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
             self.checkboxes.append(checkbox)
             self.get()
         
-    
     def get(self):
         checked_checkboxes = []
         for checkbox in self.checkboxes:
@@ -72,7 +111,7 @@ class App(ctk.CTk):
         
         #UI elements
         #region Assignments
-        self.assignments_frame = MyScrollableCheckboxFrame(self, title="Assignments")
+        self.assignments_frame = MyScrollableCheckboxFrame(self, title="Assignments", dump="assignments_checkboxes.dump")
         self.assignments_frame.grid(row=0, column=0, padx=10, pady=(10,0), sticky="nsew")
         self.assignments_button = ctk.CTkButton(self, text="Add Assignment", command=self.assignments_frame.add_checkbox)
         self.assignments_button.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
@@ -81,7 +120,7 @@ class App(ctk.CTk):
         #endregion
         
         #region Tests
-        self.tests_frame = MyScrollableCheckboxFrame(self, title="Tests")
+        self.tests_frame = MyScrollableCheckboxFrame(self, title="Tests", dump="tests_checkboxes.dump")
         self.tests_frame.grid(row=0, column=1, padx=(0,10), pady=(10,0),sticky="nsew")
         self.tests_button = ctk.CTkButton(self, text="Add Test",command=self.tests_frame.add_checkbox)
         self.tests_button.grid(row=3, column=1, padx=(0,10), pady=10, sticky="nsew")
@@ -90,7 +129,7 @@ class App(ctk.CTk):
         #endregion
        
         #region House Chores     
-        self.house_frame = MyScrollableCheckboxFrame(self, title="House Chores")
+        self.house_frame = MyScrollableCheckboxFrame(self, title="House Chores", dump="house_checkboxes.dump")
         self.house_frame.grid(row=0, column=2, padx=(0,10), pady=(10,0), sticky="nsew")
         self.house_button = ctk.CTkButton(self, text="Add House Chore", command=self.house_frame.add_checkbox)
         self.house_button.grid(row=3, column=2, padx=(0,10), pady=10, sticky="nsew")
@@ -98,7 +137,24 @@ class App(ctk.CTk):
         self.clear_h_button.grid(row=4, column=2, padx=(0,10), pady=10, sticky="nsew")
         #endregion
         
+        self.assignments_frame.update()
+        self.tests_frame.update()
+        self.house_frame.update()
+    
+    def on_closing(self):
+        msg = CTkMessagebox(title="Exit?", message="Do you want to close the program?",
+                            icon="question", option_1="No", option_2="Yes")
+        response = msg.get()
         
-        
+        if response=="Yes":
+            self.house_frame.save_checkboxes()
+            self.tests_frame.save_checkboxes()
+            self.assignments_frame.save_checkboxes()
+            app.destroy()       
+        else:
+            pass
+
 app = App()
+app.protocol("WM_DELETE_WINDOW", app.on_closing)
 app.mainloop()
+
