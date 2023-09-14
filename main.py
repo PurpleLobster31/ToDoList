@@ -23,9 +23,13 @@ class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
         super().__init__(master, label_text=title)
         self.grid_columnconfigure(0, weight=1)
         self.dump=dump
+        self.root=master
         self.checkboxes = []
         self.load_checkboxes()
         
+    def set_checkboxes(self):
+        for checkbox in self.checkboxes:
+            checkbox.configure(command=self.root.calculate_progress)
 
     def save_checkboxes(self):
         checkbox_texts = []
@@ -71,10 +75,12 @@ class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
             else:
                 checkbox_text = checkbox_text_unfiltered
                 
-            checkbox = ctk.CTkCheckBox(self, text=checkbox_text)
+            checkbox = ctk.CTkCheckBox(self, text=checkbox_text, command=self.root.calculate_progress)
             checkbox.grid(row=len(self.checkboxes), column=0, padx = 10, pady=(10,0), sticky="w")
             self.checkboxes.append(checkbox)
             self.get()
+            self.root.calculate_progress()
+            
         
     def get(self):
         checked_checkboxes = []
@@ -87,7 +93,8 @@ class MyScrollableCheckboxFrame(ctk.CTkScrollableFrame):
         for checkbox in self.checkboxes:
             checkbox.destroy()
         
-        self.checkboxes.clear()    
+        self.checkboxes.clear()  
+        self.root.calculate_progress()  
         
 #App frame
 class App(ctk.CTk):
@@ -137,6 +144,17 @@ class App(ctk.CTk):
         self.clear_h_button.grid(row=4, column=2, padx=(0,10), pady=10, sticky="nsew")
         #endregion
         
+        self.frames = [self.assignments_frame, self.tests_frame, self.house_frame]
+        for frame in self.frames:
+            frame.set_checkboxes()
+        
+        self.progress_text = ctk.CTkLabel(self, text="0%", font=("CTkDefaultFont", 15, "bold"))
+        self.progress_text.grid(row=5, column=1, padx=10, pady=10, sticky="nsew")
+        
+        self.progress_bar = ctk.CTkProgressBar(self)
+        self.progress_bar.grid(row=6, column=0, columnspan=3, sticky="nsew")
+        self.calculate_progress()
+        
         self.assignments_frame.update()
         self.tests_frame.update()
         self.house_frame.update()
@@ -153,6 +171,18 @@ class App(ctk.CTk):
             app.destroy()       
         else:
             pass
+    
+    def calculate_progress(self):
+            total_activities = len(self.house_frame.checkboxes) + len(self.tests_frame.checkboxes) + len(self.assignments_frame.checkboxes)
+            completed_activities = len(self.house_frame.get()) + len(self.tests_frame.get()) + len(self.assignments_frame.get())
+            if total_activities==0:
+                self.progress_text.configure(text="No activities on board.")
+                self.progress_bar.set(1)
+            else:
+                per = completed_activities/total_activities
+                text_per = int(per*100)
+                self.progress_text.configure(text="{}% of activies completed!".format(text_per))
+                self.progress_bar.set(per)
 
 app = App()
 app.protocol("WM_DELETE_WINDOW", app.on_closing)
